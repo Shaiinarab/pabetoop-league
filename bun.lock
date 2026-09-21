@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "shiraz-league",
+      "name": "pabetoop-league",
       "dependencies": {
         "htmx.org": "4.0.0",
         "typescript": "7.0.2",
