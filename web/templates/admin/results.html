@@ -1,0 +1,11 @@
+{{/* قرارداد داده (admin/results — صفحهٔ ثبت سریع نتیجه؛ با admin_base رندر می‌شود):
+     کل بدنهٔ کار از «results_board» می‌آید (admin_result_base.html) تا htmx فقط همان
+     بازهٔ #results-board را با hx-select جایگزین کند. */}}
+{{define "title"}}ثبت سریع نتیجه — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">ثبت سریع نتیجه</h1>
+  <p class="muted">مسابقه و هفته را انتخاب کنید، نتیجه را وارد کنید و «ثبت» را بزنید. با کلید Enter سریع‌تر پیش می‌رود؛ پس از ثبت، نشانگر خودکار به بازی بعدی می‌رود.</p>
+</section>
+{{template "results_board" .}}
+{{end}}

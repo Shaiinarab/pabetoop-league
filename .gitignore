@@ -1,0 +1,26 @@
+# pabetoop-league — project-local ignores
+
+# ── dependencies & build output ──────────────────────────────────────────────
+node_modules/
+/bin/
+dist/
+
+# ── runtime state (regenerated; never commit) ────────────────────────────────
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# ── scratch space ────────────────────────────────────────────────────────────
+# `tmp/*` rather than `tmp/` so the acceptance harnesses can be tracked: a
+# whole-directory exclusion cannot be re-included from, and the docs cite these
+# scripts as the way to run a gate. A fresh clone needs them. The re-include is
+# `*.sh`, not a name prefix, so a harness called anything else is still tracked —
+# a doc citing an uncommitted script is a gate nobody can run.
+tmp/*
+!tmp/*.sh
+
+# ── client build artefacts ───────────────────────────────────────────────────
+# The bundled htmx build IS tracked (offline-first); everything else compiled is not.
+web/static/js/app.js
+web/static/js/app.js.map

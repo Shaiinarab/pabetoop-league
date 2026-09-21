@@ -1,0 +1,31 @@
+services:
+  league:
+    build: .
+    image: pabetoop-league:local
+    ports:
+      - "${PORT:-8080}:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      ADDR: ":8080"
+      DB_PATH: /app/data/league.db
+      # Uncomment for a demo database with 73 placeholder clubs and a full
+      # season. Never combine with real data.
+      # SEED: "1"
+    volumes:
+      - league_data:/app/data
+    init: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+
+volumes:
+  league_data:
+    name: pabetoop_league_data

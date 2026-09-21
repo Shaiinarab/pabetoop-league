@@ -1,0 +1,80 @@
+{{/* قرارداد داده (admin/audit — گزارش تغییرات؛ فقط‌خواندنی، spec §17):
+     .Rows فهرست {ID int64, When string, Action string, ActionLabel string,
+                  Entity string, EntityLabel string, EntityID int64, Admin string, Change string}
+     .Action/.Entity فیلترهای فعال · .ActionOptions/.EntityOptions فهرست {Value, Label, Count}
+     .Page int · .HasPrev/.PrevURL · .HasNext/.NextURL · .ClearURL
+     .Shown/.FilteredTotal int (صفحه‌بندی سمت store؛ هیچ سقفی روی نمایش نیست)
+     هیچ فرم تغییردهنده‌ای روی این صفحه نیست؛ رویدادهای گزارش تغییرات هرگز ویرایش یا حذف نمی‌شوند.
+     تاریخ‌ها از سرور فارسی می‌آیند (jalaliDateTime)؛ قالب هیچ محاسبهٔ تاریخی انجام نمی‌دهد (D9). */}}
+{{define "title"}}گزارش تغییرات — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">گزارش تغییرات</h1>
+  <p class="muted">هر تغییر مدیریتی به‌طور خودکار همراه با زمان، عملیات و مقدار پیش و پس از تغییر ثبت می‌شود. این گزارش فقط‌خواندنی است.</p>
+  <form method="get" action="/admin/audit" class="form-row">
+    <div class="field">
+      <label for="action">نوع عملیات</label>
+      <select id="action" name="action">
+        <option value="">همه</option>
+        {{range .ActionOptions}}
+          <option value="{{.Value}}"{{if eq .Value $.Action}} selected{{end}}>{{.Label}} ({{toFa (printf "%d" .Count)}})</option>
+        {{end}}
+      </select>
+    </div>
+    <div class="field">
+      <label for="entity">موجودیت</label>
+      <select id="entity" name="entity">
+        <option value="">همه</option>
+        {{range .EntityOptions}}
+          <option value="{{.Value}}"{{if eq .Value $.Entity}} selected{{end}}>{{.Label}} ({{toFa (printf "%d" .Count)}})</option>
+        {{end}}
+      </select>
+    </div>
+    <button class="btn primary" type="submit">اعمال فیلتر</button>
+    <a class="btn ghost" href="{{.ClearURL}}">حذف فیلترها</a>
+  </form>
+  <p class="muted">نمایش {{toFa (printf "%d" .Shown)}} مورد از {{toFa (printf "%d" .FilteredTotal)}} مورد.</p>
+</section>
+
+<section class="card">
+  <h2 class="section-title">رویدادها</h2>
+  {{if not .Rows}}
+    <div class="empty-state">رویدادی با این فیلتر پیدا نشد.</div>
+  {{else}}
+    <div class="table-wrap">
+      <table class="standings">
+        <thead>
+          <tr>
+            <th>زمان</th>
+            <th>عملیات</th>
+            <th>موجودیت</th>
+            <th>شناسه</th>
+            <th>مدیر</th>
+            <th>تغییر</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Rows}}
+            <tr>
+              <td class="persian-num">{{.When}}</td>
+              <td><span class="badge">{{.ActionLabel}}</span></td>
+              <td>{{.EntityLabel}}</td>
+              <td class="persian-num">{{if .EntityID}}{{toFa (printf "%d" .EntityID)}}{{else}}—{{end}}</td>
+              <td>{{.Admin}}</td>
+              <td>{{.Change}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  {{end}}
+
+  {{if or .HasPrev .HasNext}}
+    <div class="form-row">
+      {{if .HasPrev}}<a class="btn" href="{{.PrevURL}}">صفحهٔ قبل</a>{{end}}
+      <span class="muted">صفحهٔ {{toFa (printf "%d" .Page)}}</span>
+      {{if .HasNext}}<a class="btn" href="{{.NextURL}}">صفحهٔ بعد</a>{{end}}
+    </div>
+  {{end}}
+</section>
+{{end}}

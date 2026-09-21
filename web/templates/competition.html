@@ -1,0 +1,43 @@
+{{/* قرارداد داده: .Comp مسابقات (store.Competition: DisplayName, GroupName *string, AgeGroupID, AgeGroupAge, Level)؛
+     .Tab رشتهٔ "table"|"results"|"fixtures" (بخش فعال)؛ .Table قرارداد partial جدول رده‌بندی؛
+     .Results و .Fixtures فهرست payload سطر مسابقه (Match + ShowDate). هر سه بخش سرویرندر می‌شوند. */}}
+{{define "title"}}{{.Comp.DisplayName}} — {{.SiteName}}{{end}}
+{{define "content"}}
+<nav class="breadcrumb">
+  <a href="/">خانه</a>
+  <span class="breadcrumb-sep">/</span>
+  <a href="/age/{{.Comp.AgeGroupID}}">ردهٔ {{toFa (printf "%d" .Comp.AgeGroupAge)}} سال</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>{{.Comp.DisplayName}}</span>
+</nav>
+
+<h1 class="section-title">{{.Comp.DisplayName}}</h1>
+
+<div class="nav-tabs">
+  <a class="nav-tab{{if eq .Tab "table"}} active{{end}}" href="/competition/{{.Comp.ID}}/table">جدول</a>
+  <a class="nav-tab{{if eq .Tab "results"}} active{{end}}" href="/competition/{{.Comp.ID}}/results">نتایج</a>
+  <a class="nav-tab{{if eq .Tab "fixtures"}} active{{end}}" href="/competition/{{.Comp.ID}}/fixtures">برنامه</a>
+</div>
+
+<section id="table" class="{{if eq .Tab "table"}}active{{end}}">
+  {{template "standings_table" .Table}}
+</section>
+
+<section id="results" class="{{if eq .Tab "results"}}active{{end}}">
+  <h2 class="section-title">نتایج</h2>
+  {{if not .Results}}
+    <div class="empty-state">هنوز نتیجه‌ای برای این مسابقات ثبت نشده است.</div>
+  {{else}}
+    {{range .Results}}{{template "match_row" .}}{{end}}
+  {{end}}
+</section>
+
+<section id="fixtures" class="{{if eq .Tab "fixtures"}}active{{end}}">
+  <h2 class="section-title">برنامه</h2>
+  {{if not .Fixtures}}
+    <div class="empty-state">برنامه‌ای برای این گروه وجود ندارد.</div>
+  {{else}}
+    {{range .Fixtures}}{{template "match_row" .}}{{end}}
+  {{end}}
+</section>
+{{end}}

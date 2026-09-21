@@ -1,0 +1,163 @@
+{{/* قرارداد داده (admin/import — ورود گروهی بازی‌ها؛ با admin_base رندر می‌شود):
+     .AgeGroups/.SelectedCompetitionID/.SelectedName/.Teams — مثل صفحهٔ برنامهٔ بازی‌ها
+     .Preview ساختار {Token string, CompetitionID int64, CompetitionName string,
+               Rows []{Line int, LineText, WeekText, WhenText, Home, Away string,
+                      HomeOK, AwayOK bool, Venue, ScoreText string, Valid bool,
+                      HomeSuggestions, AwaySuggestions, ErrorMessages []string},
+               Total, ValidCount, ErrorCount int}
+     .Result ساختار {Inserted, Skipped int, Failures []string}
+     .MaxRowsText / .MaxBytesText رشته (راهنمای محدودیت‌ها)
+
+     رفتار:
+       - بارگذاری و «تأیید و وارد کردن» با POST معمولی‌اند (آپلود فایل)، پس هر دو فرم
+         توکن CSRF و (در تأیید) توکن یک‌بارمصرف پیش‌نمایش را hidden دارند.
+       - نام تیم‌های ناشناخته با <select> در همان ردیف حل می‌شوند؛ سامانه هرگز خودش
+         نام را اصلاح نمی‌کند (D7) — پیشنهادها فقط راهنما هستند.
+       - ردیف‌های دارای خطا هرگز وارد نمی‌شوند؛ خطاها با شمارهٔ خط فارسی نشان داده می‌شوند.
+     بدون اسکریپت/استایل درون‌خطی (CSP سخت‌گیر). تاریخ‌ها و اعداد از سرور فارسی می‌آیند (D9). */}}
+{{define "title"}}ورود گروهی بازی‌ها — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">ورود گروهی بازی‌ها از فایل</h1>
+  <p class="muted">فایل بازی‌ها را بارگذاری کنید؛ ابتدا پیش‌نمایش نشان داده می‌شود و تا تأیید نکنید چیزی ثبت نمی‌شود.</p>
+  <p class="muted">ستون‌ها: هفته، تاریخ (شمسی یا میلادی)، ساعت، میزبان، مهمان، زمین. اگر سطر عنوان نداشته باشد، ترتیب چهارستونی «هفته، تاریخ، میزبان، مهمان» فرض می‌شود. جداکننده: ویرگول، نقطه‌ویرگول، ویرگول فارسی یا خط عمودی.</p>
+  <p class="muted">هر بار حداکثر {{.MaxRowsText}} سطر مسابقه و {{.MaxBytesText}} حجم فایل.</p>
+</section>
+
+{{if not .AgeGroups}}
+  <div class="empty-state">مسابقه‌ای برای فصل جاری ثبت نشده است. ابتدا فصل و مسابقات را بسازید.</div>
+{{else}}
+  <section class="card">
+    <h2 class="section-title">بارگذاری فایل</h2>
+    <form method="post" action="/admin/import" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+      <div class="form-row">
+        <div class="field">
+          <label for="competition">مسابقات</label>
+          <select id="competition" name="competition" required>
+            {{range .AgeGroups}}
+              <optgroup label="{{.DisplayName}}">
+                {{range .Competitions}}
+                  <option value="{{.ID}}"{{if eq .ID $.SelectedCompetitionID}} selected{{end}}>{{.Name}}</option>
+                {{end}}
+              </optgroup>
+            {{end}}
+          </select>
+        </div>
+        <div class="field">
+          <label for="file">فایل بازی‌ها</label>
+          <input id="file" name="file" type="file" accept=".csv,.txt,text/csv,text/plain" required>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn primary large" type="submit">پیش‌نمایش</button>
+        </div>
+      </div>
+    </form>
+  </section>
+{{end}}
+
+{{with .Result}}
+  <section class="card">
+    <h2 class="section-title">نتیجهٔ ورود</h2>
+    <p><span class="badge">{{toFa (printf "%d" .Inserted)}} مسابقه ثبت شد</span>
+       {{if .Skipped}}<span class="pill">{{toFa (printf "%d" .Skipped)}} سطر وارد نشد</span>{{end}}</p>
+    {{if .Failures}}
+      <div class="flash error">
+        <p>این سطرها وارد نشدند:</p>
+        <ul class="help-text">
+          {{range .Failures}}<li>{{.}}</li>{{end}}
+        </ul>
+      </div>
+    {{end}}
+  </section>
+{{end}}
+
+{{with .Preview}}
+  <section class="card">
+    <h2 class="section-title">پیش‌نمایش</h2>
+    <p class="muted">
+      مسابقات: {{.CompetitionName}} ·
+      <span class="badge">{{toFa (printf "%d" .ValidCount)}} مسابقهٔ معتبر</span>
+      {{if .ErrorCount}}<span class="pill">{{toFa (printf "%d" .ErrorCount)}} خطا</span>{{end}}
+      (از {{toFa (printf "%d" .Total)}} سطر)
+    </p>
+    <p class="muted">سطرهای دارای خطا وارد نمی‌شوند. اگر نام تیمی در فهرست نیست، از فهرست همان سطر تیم درست را انتخاب کنید.</p>
+
+    <form method="post" action="/admin/import/confirm">
+      <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+      <input type="hidden" name="token" value="{{.Token}}">
+      <div class="table-wrap">
+        <table class="standings">
+          <thead>
+            <tr>
+              <th>خط</th>
+              <th>هفته</th>
+              <th>تاریخ</th>
+              <th>میزبان</th>
+              <th>مهمان</th>
+              <th>زمین</th>
+              <th>نتیجه</th>
+              <th>وضعیت</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Rows}}
+              <tr>
+                <td class="persian-num">{{.LineText}}</td>
+                <td class="persian-num">{{if .WeekText}}{{.WeekText}}{{else}}—{{end}}</td>
+                <td class="persian-num">{{if .WhenText}}{{.WhenText}}{{else}}—{{end}}</td>
+                <td>
+                  {{.Home}}
+                  {{if not .HomeOK}}
+                    <div class="field">
+                      <label for="rh-{{.Line}}">تیم میزبان را انتخاب کنید</label>
+                      <select id="rh-{{.Line}}" name="resolve_{{.Line}}_home">
+                        <option value="">— انتخاب کنید —</option>
+                        {{range $.Teams}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                      </select>
+                      {{if .HomeSuggestions}}
+                        <p class="muted">شاید منظور شما {{range $i, $s := .HomeSuggestions}}{{if $i}}، {{end}}«{{$s}}»{{end}} است؟</p>
+                      {{end}}
+                    </div>
+                  {{end}}
+                </td>
+                <td>
+                  {{.Away}}
+                  {{if not .AwayOK}}
+                    <div class="field">
+                      <label for="ra-{{.Line}}">تیم مهمان را انتخاب کنید</label>
+                      <select id="ra-{{.Line}}" name="resolve_{{.Line}}_away">
+                        <option value="">— انتخاب کنید —</option>
+                        {{range $.Teams}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                      </select>
+                      {{if .AwaySuggestions}}
+                        <p class="muted">شاید منظور شما {{range $i, $s := .AwaySuggestions}}{{if $i}}، {{end}}«{{$s}}»{{end}} است؟</p>
+                      {{end}}
+                    </div>
+                  {{end}}
+                </td>
+                <td>{{if .Venue}}{{.Venue}}{{else}}—{{end}}</td>
+                <td class="persian-num">{{if .ScoreText}}{{.ScoreText}}{{else}}—{{end}}</td>
+                <td>
+                  {{if .Valid}}
+                    <span class="badge">معتبر</span>
+                  {{else}}
+                    <span class="pill">خطا</span>
+                    <ul class="help-text">
+                      {{range .ErrorMessages}}<li>{{.}}</li>{{end}}
+                    </ul>
+                  {{end}}
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      <div class="form-row">
+        <button class="btn primary large" type="submit">تأیید و وارد کردن</button>
+      </div>
+    </form>
+  </section>
+{{end}}
+{{end}}

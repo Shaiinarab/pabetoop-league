@@ -1,0 +1,50 @@
+{{/* قرارداد داده (admin/registrations — ثبت‌نام تیم‌ها در یک مسابقه؛ با admin_base رندر می‌شود):
+     .Competition store.Competition (ID, DisplayName, Level, GroupName)
+     .Rows فهرست {RegistrationID, CompetitionID, TeamName, ClubName, CSRFToken}
+     .Eligible فهرست {ID, Name} — تیم‌های فعالی که در این مسابقات ثبت‌نام نشده‌اند
+
+     htmx 4 (D2): ثبت‌نام → #registered-table با innerHTML عوض می‌شود؛ خطای ۴۲۲ با
+     hx-status:422 به #register-errors می‌رود. حذف ثبت‌نام → سطر خودش (outerHTML، پاسخ خالی)
+     و خطای ۴۰۰ (بازی ثبت‌شده) به #register-errors. مسیر بدون JS: فرم + ریدایرکت ۳۰۳. */}}
+{{define "title"}}ثبت‌نام‌ها — {{.Competition.DisplayName}}{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">ثبت‌نام‌ها — {{.Competition.DisplayName}}</h1>
+  <p class="muted">تیم‌های ثبت‌نام‌شده در این مسابقات را می‌بینید و می‌توانید تیم تازه‌ای اضافه کنید. حذف ثبت‌نام فقط وقتی ممکن است که تیم در این مسابقات بازی ثبت‌شده نداشته باشد.</p>
+  <div id="register-errors" aria-live="polite"></div>
+
+  <form hx-post="/admin/competitions/{{.Competition.ID}}/register"
+        hx-target="#registered-table" hx-swap="innerHTML"
+        hx-status:422="target:#register-errors"
+        method="post" action="/admin/competitions/{{.Competition.ID}}/register">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <div class="field">
+        <label for="team_id">افزودن تیم</label>
+        {{if .Eligible}}
+          <select id="team_id" name="team_id" required>
+            <option value="" disabled selected>— انتخاب تیم —</option>
+            {{range .Eligible}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+          </select>
+        {{else}}
+          <p class="help-text">تیم واجد شرایطی برای افزودن نیست.</p>
+        {{end}}
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn primary" type="submit" {{if not .Eligible}}disabled{{end}}>ثبت‌نام</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2 class="section-title">تیم‌های ثبت‌شده</h2>
+  <div class="table-wrap">
+    <table class="standings" id="registered-table">
+      <thead><tr><th>باشگاه</th><th>تیم</th><th>عملیات</th></tr></thead>
+      {{template "registered_teams" .}}
+    </table>
+  </div>
+</section>
+{{end}}

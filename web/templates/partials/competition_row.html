@@ -1,0 +1,87 @@
+{{/* قرارداد داده (partials/competition_row — قطعات مسابقات و ثبت‌نام‌ها):
+     competition_row       → . {ID, DisplayName, LevelLabel, GroupName, GroupInput,
+                                IsLeague1, Registrations, Matches, Finished}
+     competition_row_error → . {Competition competition_row، Message string}
+                             (سطر دست‌نخورده + پیام خطای فارسی؛ الگوی club_row_error)
+     registration_row      → . {RegistrationID, CompetitionID, TeamName, ClubName, CSRFToken}
+     registered_teams      → . {Rows []registration_row}  (محتوای <tbody> برای swap درون‌خطی)
+     register_error        → . {Message string}           (اسلات #register-errors)
+
+     ویرایش/حذف مسابقات: فرم hx-post داخل سطر با hx-target="closest tr" — همان الگوی
+     تغییرنام باشگاه. group_name فقط برای لیگ ۱ رندر می‌شود (لیگ برتر گروه ندارد).
+     حذف فقط با data-confirm است؛ app.js مالک دیالوگ تأیید است (تک‌دیالوگ، بدون hx-confirm).
+
+     رفتار htmx 4 (D2): CSRF از هدر ارثی body می‌آید؛ فیلد پنهان برای مسیر بدون JS است.
+     خطاهای ۴۰۰/۴۲۲ با hx-status به #register-errors می‌روند تا سطر دست‌نخورده بماند. */}}
+{{define "competition_row"}}
+<tr id="comp-{{.ID}}">
+  <td>{{.DisplayName}}</td>
+  <td>{{if .GroupName}}{{.GroupName}}{{else}}—{{end}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Registrations)}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Matches)}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Finished)}}</td>
+  <td><a class="btn" href="/admin/competitions/{{.ID}}/registrations">ثبت‌نام‌ها</a></td>
+  <td>
+    <form class="form-row" hx-post="/admin/competitions/{{.ID}}/edit" hx-target="closest tr" hx-swap="outerHTML">
+      <input type="text" name="display_name" value="{{.DisplayName}}" aria-label="نام مسابقات" required>
+      {{if .IsLeague1}}<input type="text" name="group_name" value="{{.GroupInput}}" aria-label="نام گروه" required>{{end}}
+      <button type="submit" class="btn">ذخیره</button>
+    </form>
+    <button type="button" class="btn danger"
+            hx-post="/admin/competitions/{{.ID}}/delete"
+            hx-target="closest tr" hx-swap="outerHTML"
+            data-confirm="این مسابقات حذف شود؟ تا وقتی ثبت‌نام یا مسابقه‌ای داشته باشد حذف انجام نمی‌شود.">حذف</button>
+  </td>
+</tr>
+{{end}}
+
+{{define "competition_row_error"}}
+<tr id="comp-{{.Competition.ID}}">
+  <td>{{.Competition.DisplayName}}</td>
+  <td>{{if .Competition.GroupName}}{{.Competition.GroupName}}{{else}}—{{end}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Competition.Registrations)}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Competition.Matches)}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Competition.Finished)}}</td>
+  <td><a class="btn" href="/admin/competitions/{{.Competition.ID}}/registrations">ثبت‌نام‌ها</a></td>
+  <td>
+    <div class="flash error">{{.Message}}</div>
+    <form class="form-row" hx-post="/admin/competitions/{{.Competition.ID}}/edit" hx-target="closest tr" hx-swap="outerHTML">
+      <input type="text" name="display_name" value="{{.Competition.DisplayName}}" aria-label="نام مسابقات" required>
+      {{if .Competition.IsLeague1}}<input type="text" name="group_name" value="{{.Competition.GroupInput}}" aria-label="نام گروه" required>{{end}}
+      <button type="submit" class="btn">ذخیره</button>
+    </form>
+    <button type="button" class="btn danger"
+            hx-post="/admin/competitions/{{.Competition.ID}}/delete"
+            hx-target="closest tr" hx-swap="outerHTML"
+            data-confirm="این مسابقات حذف شود؟ تا وقتی ثبت‌نام یا مسابقه‌ای داشته باشد حذف انجام نمی‌شود.">حذف</button>
+  </td>
+</tr>
+{{end}}
+
+{{define "registered_teams"}}<tbody id="registered-teams">
+  {{if not .Rows}}
+    <tr><td colspan="3"><div class="empty-state">هنوز تیمی در این مسابقات ثبت‌نام نشده است.</div></td></tr>
+  {{else}}
+    {{range .Rows}}{{template "registration_row" .}}{{end}}
+  {{end}}
+</tbody>{{end}}
+
+{{define "registration_row"}}
+<tr id="reg-{{.RegistrationID}}">
+  <td>{{.ClubName}}</td>
+  <td>{{.TeamName}}</td>
+  <td>
+    <form hx-post="/admin/competitions/{{.CompetitionID}}/unregister"
+          hx-target="closest tr" hx-swap="outerHTML"
+          hx-status:400="target:#register-errors"
+          method="post" action="/admin/competitions/{{.CompetitionID}}/unregister">
+      <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+      <input type="hidden" name="registration_id" value="{{.RegistrationID}}">
+      <button class="btn danger" type="submit"
+              data-confirm="این تیم از مسابقات حذف شود؟ اگر بازی ثبت‌شده داشته باشد، حذف انجام نمی‌شود.">حذف ثبت‌نام</button>
+    </form>
+  </td>
+</tr>
+{{end}}
+
+{{define "register_error"}}<div class="flash error">{{.Message}}</div>{{end}}

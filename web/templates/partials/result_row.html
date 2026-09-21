@@ -1,0 +1,34 @@
+{{/* قرارداد داده (partial result_row — یک ردیف ثبت نتیجه):
+     .Match store.Match (ID, HomeTeamName, AwayTeamName, Week *int, Status, HomeScore/AwayScore *int)
+     .HomeValue / .AwayValue رشته (ارقام لاتین در value — قرارداد main.css برای .score-input)
+     .Finished بولی · .Saved بولی (نمایش «ثبت شد» + پالس موفقیت) · .ErrorMessage رشته
+     .CSRFToken رشته (فیلد پنهان برای کارکرد بدون JS؛ در حالت htmx هدر ارثی body کافی است)
+
+     کلاس‌ها عمداً .quick-entry-row و .score-input هستند: app.ts همین دو را می‌شناسد
+     (Enter = ثبت، پس از موفقیت فوکوس به ردیف بعدی، در خطا فوکوس روی همان ردیف). */}}
+{{define "result_row"}}
+<form class="quick-entry-row{{if .Saved}} success-flash{{end}}"
+      hx-post="/admin/results/{{.Match.ID}}"
+      hx-target="closest .quick-entry-row" hx-swap="outerHTML">
+  <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+  <span class="team-name team-home">{{.Match.HomeTeamName}}</span>
+  <input class="score-input" type="text" inputmode="numeric" autocomplete="off"
+         name="home_score" value="{{.HomeValue}}" aria-label="گل {{.Match.HomeTeamName}}">
+  <span class="muted" aria-hidden="true">–</span>
+  <input class="score-input" type="text" inputmode="numeric" autocomplete="off"
+         name="away_score" value="{{.AwayValue}}" aria-label="گل {{.Match.AwayTeamName}}">
+  <span class="team-name team-away">{{.Match.AwayTeamName}}</span>
+  <button class="btn primary" type="submit">ثبت</button>
+  {{if .Finished}}
+    <button class="btn danger" type="button"
+            hx-post="/admin/results/{{.Match.ID}}/clear"
+            hx-target="closest .quick-entry-row" hx-swap="outerHTML"
+            hx-confirm="نتیجهٔ این مسابقه پاک شود؟ این کار قابل بازگشت است ولی نتیجه از جدول حذف می‌شود.">پاک کردن نتیجه</button>
+  {{end}}
+  <span class="badge">{{if .Finished}}انجام‌شده{{else}}برنامه‌ریزی‌شده{{end}}</span>
+  {{if .Match.Week}}<span class="muted">هفتهٔ {{toFa (printf "%d" .Match.Week)}}</span>{{end}}
+  {{if .Match.ScheduledDate}}<span class="muted persian-num">{{jalaliDate .Match.ScheduledDate}}</span>{{end}}
+  {{if .ErrorMessage}}<div class="flash error">{{.ErrorMessage}}</div>{{end}}
+  {{if .Saved}}<div class="flash success">ثبت شد ✓</div>{{end}}
+</form>
+{{end}}

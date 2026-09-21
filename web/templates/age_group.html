@@ -1,0 +1,42 @@
+{{/* قرارداد داده: .AgeGroup ساختار {ID int64, Age int, DisplayName}؛ .Premier مسابقات لیگ برتر (store.Competition یا nil)؛
+     .League1 فهرست مسابقات لیگ یک (store.Competition؛ GroupName *string، Registrations int).
+     لینک‌ها به /competition/{id}. */}}
+{{define "title"}}{{.AgeGroup.DisplayName}} — {{.SiteName}}{{end}}
+{{define "content"}}
+<nav class="breadcrumb">
+  <a href="/">خانه</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>{{.AgeGroup.DisplayName}}</span>
+</nav>
+
+<h1 class="section-title">{{.AgeGroup.DisplayName}}</h1>
+
+{{if .Premier}}
+<section class="card">
+  <div class="card-title">لیگ برتر</div>
+  <p class="muted">تیم‌های ثبت‌شده: {{toFa (printf "%d" .Premier.Registrations)}}</p>
+  <a class="btn primary" href="/competition/{{.Premier.ID}}">جدول و نتایج</a>
+</section>
+{{end}}
+
+{{if .League1}}
+<section>
+  <h2 class="section-title">لیگ یک</h2>
+  <div class="grid-3">
+    {{range .League1}}
+      <div class="card">
+        <div class="card-title">
+          گروه <span class="pill">{{printf "%s" .GroupName}}</span>
+        </div>
+        <p class="muted">تیم‌های ثبت‌شده: {{toFa (printf "%d" .Registrations)}}</p>
+        <a class="btn ghost" href="/competition/{{.ID}}">جدول و نتایج</a>
+      </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if and (not .Premier) (not .League1)}}
+  <div class="empty-state">هنوز مسابقاتی برای این رده سنی تعریف نشده است.</div>
+{{end}}
+{{end}}

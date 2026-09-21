@@ -1,0 +1,29 @@
+{{/* قرارداد داده: .Match از نوع store.Match (HomeTeamName, AwayTeamName, HomeScore/AwayScore *int, Status, Week *int,
+     ScheduledDate/ScheduledTime/Venue *string) و .ShowDate بولی. تاریخ با jalaliDate (امن در برابر nil) رندر می‌شود. */}}
+{{define "match_row"}}
+<div class="match-row">
+  <div class="match-teams">
+    <span>{{.Match.HomeTeamName}}</span>
+    {{if eq .Match.Status "finished"}}
+      {{if and .Match.HomeScore .Match.AwayScore}}
+        <span class="match-score">{{toFa (printf "%d" .Match.HomeScore)}}</span>
+        <span class="match-score">{{toFa (printf "%d" .Match.AwayScore)}}</span>
+      {{end}}
+    {{else}}
+      <span class="match-score">—</span>
+    {{end}}
+    <span>{{.Match.AwayTeamName}}</span>
+  </div>
+  <div class="match-meta">
+    {{if eq .Match.Status "finished"}}
+      <span class="status-badge finished">انجام‌شده</span>
+    {{else}}
+      <span class="status-badge scheduled">برنامه‌ریزی‌شده</span>
+    {{end}}
+    {{if .Match.Week}}<span>هفتهٔ {{toFa (printf "%d" .Match.Week)}}</span>{{end}}
+    {{if and .ShowDate .Match.ScheduledDate}}<span class="persian-num">{{jalaliDate .Match.ScheduledDate}}</span>{{end}}
+    {{if .Match.ScheduledTime}}<span class="persian-num">ساعت {{toFa (printf "%s" .Match.ScheduledTime)}}</span>{{end}}
+    {{if .Match.Venue}}<span>{{printf "%s" .Match.Venue}}</span>{{end}}
+  </div>
+</div>
+{{end}}

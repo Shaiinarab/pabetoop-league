@@ -1,0 +1,61 @@
+{{/* قرارداد داده (partials/club_row — یک سطر جدول باشگاه‌ها؛ payload = خود باشگاه):
+     . ساختار {ID int64, Name string, IsActive bool, TeamCount int}
+     تغییر نام درجا: فرم hx-post داخل سلول نام با hx-target="closest tr" (CSRF ارثی از body).
+     حذف: دکمهٔ danger با data-confirm — app.js (TASK-003) مالک دیالوگ تأیید است؛
+     hx-confirm عمداً استفاده نشده تا دو دیالوگ پشت‌سرهم نیاید (یادداشت یکپارچه‌سازی TASK-003).
+     خطاهای سرور به‌صورت partial همین سطر با پیام فارسی برمی‌گردند (D2: 4xx هم swap می‌شود). */}}
+{{define "club_row"}}
+<tr id="club-{{.ID}}">
+  <td>
+    <form class="form-row" hx-post="/admin/clubs/{{.ID}}/rename" hx-target="closest tr" hx-swap="outerHTML">
+      <input type="text" name="name" value="{{.Name}}" aria-label="نام رسمی باشگاه" required>
+      <button type="submit" class="btn">تغییر نام</button>
+    </form>
+  </td>
+  <td class="persian-num">{{toFa (printf "%d" .TeamCount)}}</td>
+  <td>
+    {{if .IsActive}}
+      <span class="badge">فعال</span>
+    {{else}}
+      <span class="pill">غیرفعال</span>
+    {{end}}
+  </td>
+  <td>
+    <button type="button" class="btn danger"
+            hx-post="/admin/clubs/{{.ID}}/delete"
+            hx-target="closest tr" hx-swap="outerHTML"
+            data-confirm="با حذف باشگاه، تیم‌ها و سوابق مرتبط از دسترسی خارج می‌شوند. مطمئن هستید؟">حذف</button>
+  </td>
+</tr>
+{{end}}
+
+{{/* club_row_error — سطر رد‌شده (تغییر نام/حذف): همان سطر + پیام فارسی خودِ store.
+     قرارداد: . {Club clubView، Message string}. تا ۱۴۰۵/۰۶/۲۱ این قالب تعریف نشده
+     بود در حالی که admin_handlers.go به آن ارجاع می‌داد؛ نتیجه یک ۵۰۰ به‌جای ۴۰۰
+     ردِ قابل‌خواندن بود (تست‌های TASK-018 با t.Skip روی همین باگ رد می‌شدند).
+     رفتار htmx 4 (D2): بدنهٔ ۴۰۰ swap می‌شود، پس خطا با همان سطر برمی‌گردد. */}}
+{{define "club_row_error"}}
+<tr id="club-{{.Club.ID}}">
+  <td>
+    <div class="flash error">{{.Message}}</div>
+    <form class="form-row" hx-post="/admin/clubs/{{.Club.ID}}/rename" hx-target="closest tr" hx-swap="outerHTML">
+      <input type="text" name="name" value="{{.Club.Name}}" aria-label="نام رسمی باشگاه" required>
+      <button type="submit" class="btn">تغییر نام</button>
+    </form>
+  </td>
+  <td class="persian-num">{{toFa (printf "%d" .Club.TeamCount)}}</td>
+  <td>
+    {{if .Club.IsActive}}
+      <span class="badge">فعال</span>
+    {{else}}
+      <span class="pill">غیرفعال</span>
+    {{end}}
+  </td>
+  <td>
+    <button type="button" class="btn danger"
+            hx-post="/admin/clubs/{{.Club.ID}}/delete"
+            hx-target="closest tr" hx-swap="outerHTML"
+            data-confirm="با حذف باشگاه، تیم‌ها و سوابق مرتبط از دسترسی خارج می‌شوند. مطمئن هستید؟">حذف</button>
+  </td>
+</tr>
+{{end}}

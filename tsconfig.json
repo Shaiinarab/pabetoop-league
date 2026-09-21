@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    /* TS 7 (native compiler): no `baseUrl`, no `target: es5` — see DECISIONS.md D3 */
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": [],
+
+    "strict": true,
+    "noEmit": false, /* Bun CLI builds the bundle; type-check via `tsc --noEmit` */
+    /* outDir intentionally NOT set (see brief / DECISIONS.md D4) */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["web/static/js/**/*.ts"]
+}

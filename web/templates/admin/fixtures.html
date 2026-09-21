@@ -1,0 +1,167 @@
+{{/* قرارداد داده (admin/fixtures — برنامهٔ بازی‌ها؛ با admin_base رندر می‌شود):
+     .AgeGroups فهرست {DisplayName, Competitions []{ID, Name}} (برای <optgroup>) ·
+     .SelectedCompetitionID int64 · .SelectedName string · .Week int · .Weeks []int
+     .Teams فهرست {ID int64, Name string} — فقط تیم‌های ثبت‌نام‌شده در مسابقهٔ انتخابی
+     .Rows فهرست {Match store.Match, WhenText string} · .DateHint string · .WeekInput int
+
+     رفتار:
+       - انتخاب مسابقه/هفته با hx-get + hx-select="#fixtures-board" (مثل صفحهٔ ثبت نتیجه)؛
+         بدون JS همان فرم GET معمولی کار می‌کند.
+       - ثبت و حذف مسابقه با POST معمولی و بازگشت به GET (پیام فارسی از فلش admin_base می‌آید).
+       - این فرم‌ها htmx نیستند، پس هر فرم POST توکن CSRF را به‌صورت hidden دارد.
+       - حذف فقط با data-confirm است؛ app.js مالک دیالوگ تأیید است (تک‌دیالوگ، مثل باشگاه‌ها).
+     بدون اسکریپت/استایل درون‌خطی (CSP سخت‌گیر). اعداد و تاریخ‌ها از سرور فارسی می‌آیند (D9). */}}
+{{define "title"}}برنامهٔ بازی‌ها — بشقاب مدیریتی{{end}}
+{{define "content"}}
+{{template "fixtures_board" .}}
+{{end}}
+
+{{define "fixtures_board"}}
+<div id="fixtures-board">
+
+  <section class="card">
+    <h1 class="section-title">برنامهٔ بازی‌ها</h1>
+    <p class="muted">بازی‌ها دادهٔ رسمی مسابقات‌اند و دستی ثبت یا از فایل وارد می‌شوند؛ سامانه خودش بازی نمی‌سازد.</p>
+    <div class="form-row">
+      <a class="btn" href="/admin/import">ورود گروهی از فایل</a>
+    </div>
+  </section>
+
+  {{if not .AgeGroups}}
+    <div class="empty-state">مسابقه‌ای برای فصل جاری ثبت نشده است. ابتدا فصل و مسابقات را بسازید.</div>
+  {{else}}
+
+  <section class="card">
+    <form class="form-row" method="get" action="/admin/fixtures"
+          hx-get="/admin/fixtures" hx-target="#fixtures-board" hx-select="#fixtures-board"
+          hx-swap="outerHTML" hx-push-url="true">
+      <div class="field">
+        <label for="competition">مسابقه</label>
+        <select id="competition" name="competition">
+          {{range .AgeGroups}}
+            <optgroup label="{{.DisplayName}}">
+              {{range .Competitions}}
+                <option value="{{.ID}}"{{if eq .ID $.SelectedCompetitionID}} selected{{end}}>{{.Name}}</option>
+              {{end}}
+            </optgroup>
+          {{end}}
+        </select>
+      </div>
+      <div class="field">
+        <label for="week">هفته</label>
+        <select id="week" name="week">
+          {{range .Weeks}}
+            <option value="{{.}}"{{if eq . $.Week}} selected{{end}}>هفتهٔ {{toFa (printf "%d" .)}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn primary large" type="submit">نمایش</button>
+      </div>
+    </form>
+    {{if .SelectedName}}<p class="muted">مسابقهٔ انتخاب‌شده: {{.SelectedName}}</p>{{end}}
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">ثبت مسابقهٔ جدید</h2>
+    {{if not .Teams}}
+      <div class="empty-state">برای این مسابقات هنوز تیمی ثبت‌نام نشده است؛ ابتدا تیم‌ها را در مسابقات ثبت کنید.</div>
+    {{else}}
+      <form method="post" action="/admin/fixtures">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <input type="hidden" name="competition" value="{{.SelectedCompetitionID}}">
+        <div class="form-row">
+          <div class="field">
+            <label for="week-input">هفته</label>
+            <input id="week-input" name="week" inputmode="numeric" value="{{if .WeekInput}}{{.WeekInput}}{{end}}">
+          </div>
+          <div class="field">
+            <label for="date-input">تاریخ (شمسی)</label>
+            <input id="date-input" name="date" placeholder="{{.DateHint}}" required>
+          </div>
+          <div class="field">
+            <label for="time-input">ساعت (اختیاری)</label>
+            <input id="time-input" name="time" placeholder="۱۶:۳۰">
+          </div>
+          <div class="field">
+            <label for="venue-input">زمین (اختیاری)</label>
+            <input id="venue-input" name="venue" placeholder="مثلاً: زمین نمونه">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="home-team">تیم میزبان</label>
+            <select id="home-team" name="home_team" required>
+              <option value="">— انتخاب کنید —</option>
+              {{range .Teams}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+            </select>
+          </div>
+          <div class="field">
+            <label for="away-team">تیم مهمان</label>
+            <select id="away-team" name="away_team" required>
+              <option value="">— انتخاب کنید —</option>
+              {{range .Teams}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+            </select>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn primary large" type="submit">ثبت مسابقه</button>
+          </div>
+        </div>
+      </form>
+    {{end}}
+  </section>
+
+  <section class="card" aria-label="بازی‌های هفته">
+    <h2 class="section-title">بازی‌های این هفته</h2>
+    {{if not .Rows}}
+      <div class="empty-state">برای این هفته بازی‌ای ثبت نشده است. هفتهٔ دیگری را انتخاب کنید یا مسابقهٔ جدید ثبت کنید.</div>
+    {{else}}
+      <div class="table-wrap">
+        <table class="standings">
+          <thead>
+            <tr>
+              <th>هفته</th>
+              <th>تاریخ و ساعت</th>
+              <th>میزبان</th>
+              <th>مهمان</th>
+              <th>زمین</th>
+              <th>وضعیت</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Rows}}
+              <tr>
+                <td class="persian-num">{{if .Match.Week}}{{toFa (printf "%d" .Match.Week)}}{{else}}—{{end}}</td>
+                <td class="persian-num">{{if .WhenText}}{{.WhenText}}{{else}}—{{end}}</td>
+                <td>{{.Match.HomeTeamName}}</td>
+                <td>{{.Match.AwayTeamName}}</td>
+                <td>{{if .Match.Venue}}{{.Match.Venue}}{{else}}—{{end}}</td>
+                <td>
+                  {{if eq .Match.Status "finished"}}
+                    <span class="badge">ثبت‌شده</span>
+                  {{else}}
+                    <span class="pill">برنامه‌ریزی‌شده</span>
+                  {{end}}
+                </td>
+                <td>
+                  <form method="post" action="/admin/fixtures/{{.Match.ID}}/delete">
+                    <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+                    <input type="hidden" name="competition" value="{{$.SelectedCompetitionID}}">
+                    <button class="btn danger" type="submit"
+                            data-confirm="حذف مسابقه؛ نتیجهٔ ثبت‌شده هم پاک می‌شود. مطمئنید؟">حذف</button>
+                  </form>
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    {{end}}
+  </section>
+
+  {{end}}
+</div>
+{{end}}

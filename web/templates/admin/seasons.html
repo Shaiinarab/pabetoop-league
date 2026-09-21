@@ -1,0 +1,111 @@
+{{/* قرارداد داده (admin/seasons — فهرست + فرم ایجاد؛ با admin_base رندر می‌شود):
+     .Seasons []season_row · .HasSeasons بولی · .ActiveName رشته
+     .SeasonsPath رشته (اکشن فرم ایجاد) · .CSRFToken رشته
+     فرم: .FormName/.FormStartsOn/.FormEndsOn رشته
+          .FieldErrors نگاشت فیلد→پیام فارسی (name, starts_on, ends_on)
+          .FormError پیام کلی (مثلاً «فصلی با این نام قبلاً ثبت شده است» از خود store)
+
+     ویرایش هر سطر درجا با htmx است ({{define "season_row"}} در همین فایل — seasons.html
+     تنها فایل مجاز این تسک است، پس partial جدا ساخته نشد).
+     فعال‌سازی فرم معمولی POST + ریدایرکت است، نه swap؛ چون نشان «فعال» روی دو سطر
+     هم‌زمان تغییر می‌کند و فقط بارگذاری کامل تضمین می‌کند همه‌جا یک فصل فعال دیده شود.
+
+     حذف فصل وجود ندارد و هرگز اضافه نمی‌شود: §۷ قاعدهٔ ۷ — فصل حذف نمی‌شود.
+     خطاهای اعتبارسنجی با ۴۲۲ و همان صفحه برمی‌گردند (htmx 4 بدنهٔ 4xx را swap می‌کند — D2). */}}
+{{define "title"}}فصل‌ها — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card" id="new-season">
+  <h1 class="section-title">فصل‌ها</h1>
+  <p class="muted">فصل ریشهٔ همهٔ داده‌هاست: رده‌های سنی، مسابقات و ثبت‌نام‌ها به فصل وابسته‌اند. فقط یک فصل می‌تواند فعال باشد و فقط داده‌های فصل فعال در سایت عمومی نمایش داده می‌شود.</p>
+  {{if .FormError}}<div class="flash error">{{.FormError}}</div>{{end}}
+
+  <form method="post" action="{{.SeasonsPath}}">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <div class="field">
+        <label for="name">نام فصل</label>
+        <input id="name" name="name" type="text" value="{{.FormName}}" required placeholder="مثلاً ۱۴۰۶–۱۴۰۷">
+        {{with .FieldErrors}}{{with .name}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+      <div class="field">
+        <label for="starts_on">تاریخ شروع (اختیاری)</label>
+        <input id="starts_on" name="starts_on" type="text" value="{{.FormStartsOn}}" placeholder="مثلاً ۱۴۰۶/۰۷/۰۱">
+        {{with .FieldErrors}}{{with .starts_on}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+      <div class="field">
+        <label for="ends_on">تاریخ پایان (اختیاری)</label>
+        <input id="ends_on" name="ends_on" type="text" value="{{.FormEndsOn}}" placeholder="مثلاً ۱۴۰۷/۰۳/۳۱">
+        {{with .FieldErrors}}{{with .ends_on}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+    </div>
+    <div class="form-row">
+      <button class="btn primary large" type="submit">ثبت فصل</button>
+    </div>
+  </form>
+</section>
+
+{{if not .HasSeasons}}
+  <div class="empty-state">هنوز فصلی ثبت نشده است؛ برای شروع نخستین فصل را بسازید (مثلاً «۱۴۰۶–۱۴۰۷») و سپس آن را فعال کنید.</div>
+{{else}}
+  <p class="muted">
+    فصل فعال:
+    {{if .ActiveName}}<span class="pill">{{.ActiveName}}</span>{{else}}<span>هیچ فصلی فعال نیست؛ تا فعال‌سازی، سایت عمومی داده‌ای نشان نمی‌دهد.</span>{{end}}
+  </p>
+  <div class="table-wrap">
+    <table class="standings">
+      <thead><tr><th>نام فصل</th><th>وضعیت</th><th>شروع</th><th>پایان</th><th>مسابقات</th><th>عملیات</th></tr></thead>
+      <tbody>{{range .Seasons}}{{template "season_row" .}}{{end}}</tbody>
+    </table>
+  </div>
+{{end}}
+{{end}}
+
+{{define "season_row"}}
+<tr id="season-{{.ID}}">
+  <td>{{.Name}}</td>
+  <td>{{if .IsActive}}<span class="pill">فعال</span>{{else}}<span class="muted">غیرفعال</span>{{end}}</td>
+  <td class="persian-num">{{if .StartsLabel}}{{.StartsLabel}}{{else}}—{{end}}</td>
+  <td class="persian-num">{{if .EndsLabel}}{{.EndsLabel}}{{else}}—{{end}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Competitions)}}</td>
+  <td>
+    <form class="form-row" hx-post="/admin/seasons/{{.ID}}/edit" hx-target="closest tr" hx-swap="outerHTML"
+          method="post" action="/admin/seasons/{{.ID}}/edit">
+      <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+      <input type="text" name="name" value="{{.Name}}" aria-label="نام فصل" required>
+      <input type="text" name="starts_on" value="{{.StartsInput}}" aria-label="تاریخ شروع" placeholder="شروع">
+      <input type="text" name="ends_on" value="{{.EndsInput}}" aria-label="تاریخ پایان" placeholder="پایان">
+      <button type="submit" class="btn">ذخیره</button>
+    </form>
+    {{if .IsEmpty}}<p class="muted">این فصل هنوز مسابقه‌ای ندارد؛ پس از فعال‌سازی، مسابقات را در بخش «مسابقات» بسازید.</p>{{end}}
+    <form method="post" action="/admin/seasons/{{.ID}}/activate">
+      <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+      <button type="submit" class="btn primary" {{if .IsActive}}disabled{{end}}>فعال‌سازی</button>
+    </form>
+  </td>
+</tr>
+{{end}}
+
+{{define "season_row_error"}}
+<tr id="season-{{.Season.ID}}">
+  <td>{{.Season.Name}}</td>
+  <td>{{if .Season.IsActive}}<span class="pill">فعال</span>{{else}}<span class="muted">غیرفعال</span>{{end}}</td>
+  <td class="persian-num">{{if .Season.StartsLabel}}{{.Season.StartsLabel}}{{else}}—{{end}}</td>
+  <td class="persian-num">{{if .Season.EndsLabel}}{{.Season.EndsLabel}}{{else}}—{{end}}</td>
+  <td class="persian-num">{{toFa (printf "%d" .Season.Competitions)}}</td>
+  <td>
+    <div class="flash error">{{.Message}}</div>
+    <form class="form-row" hx-post="/admin/seasons/{{.Season.ID}}/edit" hx-target="closest tr" hx-swap="outerHTML"
+          method="post" action="/admin/seasons/{{.Season.ID}}/edit">
+      <input type="hidden" name="_csrf" value="{{.Season.CSRFToken}}">
+      <input type="text" name="name" value="{{.Season.Name}}" aria-label="نام فصل" required>
+      <input type="text" name="starts_on" value="{{.Season.StartsInput}}" aria-label="تاریخ شروع" placeholder="شروع">
+      <input type="text" name="ends_on" value="{{.Season.EndsInput}}" aria-label="تاریخ پایان" placeholder="پایان">
+      <button type="submit" class="btn">ذخیره</button>
+    </form>
+    <form method="post" action="/admin/seasons/{{.Season.ID}}/activate">
+      <input type="hidden" name="_csrf" value="{{.Season.CSRFToken}}">
+      <button type="submit" class="btn primary" {{if .Season.IsActive}}disabled{{end}}>فعال‌سازی</button>
+    </form>
+  </td>
+</tr>
+{{end}}

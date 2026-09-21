@@ -1,0 +1,38 @@
+{{/* قرارداد داده (admin/clubs — فهرست باشگاه‌ها؛ با admin_base رندر می‌شود):
+     .Clubs فهرست {ID int64, Name string, IsActive bool, TeamCount int}
+     سطرها با partial «club_row» رندر می‌شوند (payload = خود آیتم باشگاه) تا htmx بتواند هر سطر را جداگانه swap کند.
+     رفتار سرور (قرارداد با TASK-010):
+       - تغییر نام: POST /admin/clubs/{id}/rename (فیلد name) → HTML همان سطر (hx-swap outerHTML)
+       - حذف: POST /admin/clubs/{id}/delete → در موفقیت پاسخ خالی (سطر حذف می‌شود)؛
+         در خطا ۴۰۰ با partial «club_row» + پیام فارسی (htmx 4 بدنهٔ 4xx را swap می‌کند — D2)
+       - CSRF از هدر ارثی روی body می‌آید (admin_base)؛ فرم‌ها hidden token ندارند. */}}
+{{define "title"}}باشگاه‌ها — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">باشگاه‌ها</h1>
+  <p class="muted">نام رسمی باشگاه مرجع است؛ سیستم هرگز نام‌ها را تصحیح یا ادغام نمی‌کند.</p>
+  <div class="form-row">
+    <a class="btn primary large" href="/admin/clubs/new">باشگاه جدید</a>
+  </div>
+</section>
+
+{{if not .Clubs}}
+  <div class="empty-state">هنوز باشگاهی ثبت نشده است. با «باشگاه جدید» شروع کنید.</div>
+{{else}}
+  <div class="table-wrap">
+    <table class="standings">
+      <thead>
+        <tr>
+          <th>نام باشگاه</th>
+          <th>تعداد تیم‌ها</th>
+          <th>وضعیت</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Clubs}}{{template "club_row" .}}{{end}}
+      </tbody>
+    </table>
+  </div>
+{{end}}
+{{end}}

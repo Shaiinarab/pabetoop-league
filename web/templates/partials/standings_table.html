@@ -1,0 +1,33 @@
+{{/* قرارداد داده: .Rows فهرست standing.Row (Rank, TeamName, Played, Won, Drawn, Lost, GoalsFor, GoalsAgainst, GoalDiff, Points)؛
+     .CompetitionName رشته یا خالی (فقط برای عنوان). اعداد با toFa فارسی می‌شوند. */}}
+{{define "standings_table"}}
+{{if .CompetitionName}}<h3 class="card-title">{{.CompetitionName}}</h3>{{end}}
+{{if not .Rows}}
+  <div class="empty-state">جدول هنوز محاسبه نشده است؛ پس از ثبت نتایج، جدول به‌صورت خودکار به‌روز می‌شود.</div>
+{{else}}
+  <div class="table-wrap">
+    <table class="standings">
+      <thead>
+        <tr>
+          <th>رتبه</th><th>تیم</th><th>بازی</th><th>برده</th><th>مساوی</th><th>باخت</th>
+          <th>گل زده</th><th>گل خورده</th><th>تفاضل</th><th>امتیاز</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Rows}}<tr class="{{if eq .Rank 1}}rank-1{{else if eq .Rank 2}}rank-2{{else if eq .Rank 3}}rank-3{{end}}">
+          <td>{{toFa (printf "%d" .Rank)}}</td>
+          <td>{{.TeamName}}</td>
+          <td>{{toFa (printf "%d" .Played)}}</td>
+          <td>{{toFa (printf "%d" .Won)}}</td>
+          <td>{{toFa (printf "%d" .Drawn)}}</td>
+          <td>{{toFa (printf "%d" .Lost)}}</td>
+          <td>{{toFa (printf "%d" .GoalsFor)}}</td>
+          <td>{{toFa (printf "%d" .GoalsAgainst)}}</td>
+          <td>{{toFa (printf "%d" .GoalDiff)}}</td>
+          <td><strong>{{toFa (printf "%d" .Points)}}</strong></td>
+        </tr>{{end}}
+      </tbody>
+    </table>
+  </div>
+{{end}}
+{{end}}

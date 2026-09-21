@@ -1,0 +1,39 @@
+{{/* قرارداد داده: .SiteName رشته؛ .ActiveSeason رشته یا خالی؛ .AgeGroups لیترال {ID int64, DisplayName}؛ .IsHome بولی.
+     بلوک‌های جایگزین‌شدنی: «title» و «content». تمام تاریخ‌ها و اعداد از سرویرنده فارسی می‌آیند (toFa/jalaliDate). */}}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{block "title" .}}{{.SiteName}}{{end}}</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <script src="/static/js/htmx-4.0.0.min.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <a class="brand" href="/"><span class="logo">⚽</span><span>{{.SiteName}}</span></a>
+      {{if .ActiveSeason}}<span class="pill">{{.ActiveSeason}}</span>{{end}}
+    </div>
+    <div class="container">
+      <nav class="nav-tabs">
+        <a class="nav-tab{{if .IsHome}} active{{end}}" href="/">خانه</a>
+      </nav>
+      <nav class="age-tabs">
+        {{range .AgeGroups}}<a class="age-tab" href="/age/{{.ID}}">{{.DisplayName}}</a>{{end}}
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {{block "content" .}}<!-- هیچ محتوایی تعریف نشده است -->{{end}}
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="muted">{{.SiteSubtitle}} — جدول، نتایج و برنامهٔ دیدارها</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,70 @@
+{{/* قرارداد داده (admin/backup — پشتیبان‌گیری؛ با admin_base رندر می‌شود):
+     .Status ساختار {HasBackup bool, When string, Name string, SizeHuman string}
+     .Files فهرست {Name string, When string, SizeHuman string} — جدیدترین اول
+     قطعهٔ نام‌دار «backup_status» همان ساختار .Status را رندر می‌کند و از
+     /admin/backup/status با htmx دوباره خوانده می‌شود؛ شناسهٔ #backup-status
+     داخل خود قطعه است تا swap بیرونی همان عنصر را جایگزین کند (نه اینکه شناسه از دست برود).
+     دانلود: GET /admin/backup/download — پاسخ attachment است و در ناوبری صفحه نمی‌ماند.
+     هیچ مسیر میزبان در صفحه نمایش داده نمی‌شود (فقط نام پرونده). */}}
+{{define "title"}}پشتیبان‌گیری — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">پشتیبان‌گیری</h1>
+  <p>این فایل را در جای امن نگه دارید؛ شامل تمام اطلاعات مسابقات است.</p>
+  <p class="muted">پشتیبان یک پروندهٔ کامل پایگاه داده است. برای بازگردانی، آن را روی سرور جایگزین پروندهٔ پایگاه داده کنید.</p>
+  <div class="form-row">
+    <a class="btn primary large" href="/admin/backup/download">دانلود پشتیبان</a>
+    <button type="button" class="btn" hx-get="/admin/backup/status" hx-target="#backup-status" hx-swap="outerHTML">به‌روزرسانی وضعیت</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="section-title">وضعیت پشتیبان</h2>
+  {{template "backup_status" .Status}}
+</section>
+
+<section class="card">
+  <h2 class="section-title">پشتیبان‌های موجود</h2>
+  {{if not .Files}}
+    <div class="empty-state">هنوز پشتیبانی گرفته نشده است.</div>
+  {{else}}
+    <div class="table-wrap">
+      <table class="standings">
+        <thead>
+          <tr>
+            <th>نام پرونده</th>
+            <th>تاریخ</th>
+            <th>حجم</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Files}}
+            <tr>
+              <td dir="ltr">{{.Name}}</td>
+              <td class="persian-num">{{.When}}</td>
+              <td class="persian-num">{{.SizeHuman}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  {{end}}
+</section>
+
+<section class="card">
+  <h2 class="section-title">گزارش تغییرات</h2>
+  <p class="muted">هر تغییر مدیریتی ثبت می‌شود. برای دیدن تاریخچهٔ تغییرها به گزارش تغییرات بروید.</p>
+  <a class="btn" href="/admin/audit">مشاهدهٔ گزارش تغییرات</a>
+</section>
+{{end}}
+
+{{define "backup_status"}}
+<div id="backup-status">
+  {{if .HasBackup}}
+    <p>آخرین پشتیبان: <span class="pill">{{.When}}</span> · حجم: <span class="persian-num">{{.SizeHuman}}</span></p>
+    <p class="muted" dir="ltr">{{.Name}}</p>
+  {{else}}
+    <p class="muted">هنوز پشتیبانی گرفته نشده است.</p>
+  {{end}}
+</div>
+{{end}}

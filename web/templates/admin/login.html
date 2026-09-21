@@ -1,0 +1,45 @@
+{{/* قرارداد داده (admin/login — صفحهٔ ورود، مستقل از admin_base و بدون ناوبری):
+     .SiteName رشته · .CSRFToken رشته (الزامی در فرم) · .Username رشته (پیش‌پرشده «admin»)
+     .Flash.Error رشته (مثلاً «نام کاربری یا گذرواژه نادرست است.») — nil-safe
+     فرم معمولی POST است (بدون htmx)؛ خطاها از سرور در .Flash.Error می‌آیند. */}}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ورود — {{.SiteName}}</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1 class="section-title">ورود به بشقاب مدیریتی</h1>
+      <p class="muted">{{.SiteName}} — {{.SiteSubtitle}}</p>
+
+      {{with .Flash}}{{if .Error}}
+        <div class="flash error">{{.Error}}</div>
+      {{end}}{{end}}
+
+      <form method="post" action="/admin/login">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <div class="form-row">
+          <div class="field">
+            <label for="username">نام کاربری</label>
+            <input id="username" name="username" type="text" value="{{.Username}}" autocomplete="username" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="password">گذرواژه</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn primary large">ورود</button>
+        </div>
+        <p class="help-text">در صورت فراموشی گذرواژه با مسئول مسابقات تماس بگیرید.</p>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

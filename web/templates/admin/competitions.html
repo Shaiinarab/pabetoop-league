@@ -1,0 +1,98 @@
+{{/* قرارداد داده (admin/competitions — فهرست + فرم ایجاد؛ با admin_base رندر می‌شود):
+     .SeasonName رشته · .HasSeason بولی · .Groups فهرست {DisplayName, Premier/League1 []competition_row}
+     فرم: .Seasons []store.Season · .AgeGroups []ageOption {ID, DisplayName}
+          .FormSeasonID/.FormAgeGroupID int64 · .FormLevel/.FormGroupName/.FormDisplayName رشته
+          .FieldErrors نگاشت فیلد→پیام فارسی (season, age_group, level, group_name, display_name)
+     ویرایش/حذف هر سطر در partials/competition_row است (فرم درجا + data-confirm).
+          .FormError پیام کلی (مثلاً «این مسابقات قبلاً ثبت شده است» از خود store)
+     خطاهای اعتبارسنجی با ۴۲۲ و همان صفحه برمی‌گردند (htmx 4 بدنهٔ 4xx را swap می‌کند — D2). */}}
+{{define "title"}}مسابقات — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card" id="new-competition">
+  <h1 class="section-title">مسابقات</h1>
+  <p class="muted">مسابقات را برای هر فصل و ردهٔ سنی بسازید: لیگ برتر بدون گروه، لیگ ۱ با نام گروه. نام‌ها دقیقاً همان‌طور که وارد می‌کنید ذخیره می‌شوند.</p>
+  {{if .FormError}}<div class="flash error">{{.FormError}}</div>{{end}}
+
+  {{if not .Seasons}}
+    {{/* Operator-facing only: never expose build status here. The seasons screen
+         now exists (TASK-016), so the operator is pointed at it by name. */}}
+    <div class="empty-state">هنوز فصلی ثبت نشده است؛ تا زمانی که یک فصل ساخته نشود، ساخت مسابقات ممکن نیست. نخستین فصل را در <a href="/admin/seasons">فصل‌ها</a> بسازید.</div>
+  {{else}}
+  <form method="post" action="/admin/competitions">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <div class="field">
+        <label for="season">فصل</label>
+        <select id="season" name="season" required>
+          <option value="" disabled {{if not .FormSeasonID}}selected{{end}}>— انتخاب فصل —</option>
+          {{range .Seasons}}<option value="{{.ID}}" {{if eq .ID $.FormSeasonID}}selected{{end}}>{{.Name}}{{if .IsActive}} (فعال){{end}}</option>{{end}}
+        </select>
+        {{with .FieldErrors}}{{with .season}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+      <div class="field">
+        <label for="age_group">ردهٔ سنی</label>
+        <select id="age_group" name="age_group" required>
+          <option value="" disabled {{if not .FormAgeGroupID}}selected{{end}}>— انتخاب رده —</option>
+          {{range .AgeGroups}}<option value="{{.ID}}" {{if eq .ID $.FormAgeGroupID}}selected{{end}}>{{.DisplayName}}</option>{{end}}
+        </select>
+        {{with .FieldErrors}}{{with .age_group}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="level">سطح</label>
+        <select id="level" name="level">
+          <option value="premier" {{if eq .FormLevel "premier"}}selected{{end}}>لیگ برتر</option>
+          <option value="league1" {{if eq .FormLevel "league1"}}selected{{end}}>لیگ ۱</option>
+        </select>
+        {{with .FieldErrors}}{{with .level}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+      <div class="field">
+        <label for="group_name">نام گروه (فقط لیگ ۱)</label>
+        <input id="group_name" name="group_name" type="text" value="{{.FormGroupName}}" placeholder="مثلاً A">
+        {{with .FieldErrors}}{{with .group_name}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+      <div class="field">
+        <label for="display_name">نام مسابقات</label>
+        <input id="display_name" name="display_name" type="text" value="{{.FormDisplayName}}" required placeholder="مثلاً لیگ برتر ۱۲ سال">
+        {{with .FieldErrors}}{{with .display_name}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+    </div>
+    <div class="form-row">
+      <button class="btn primary large" type="submit">ثبت مسابقات</button>
+    </div>
+  </form>
+  {{end}}
+</section>
+
+{{if not .HasSeason}}
+  <div class="empty-state">فصلی فعال وجود ندارد؛ در <a href="/admin/seasons">فصل‌ها</a> یک فصل بسازید و آن را فعال کنید تا مسابقات اینجا نمایش داده شوند.</div>
+{{else if not .Groups}}
+  <div class="empty-state">هنوز مسابقاتی برای فصل «{{.SeasonName}}» ثبت نشده است.</div>
+{{else}}
+  <p class="muted">فصل جاری: <span class="pill">{{.SeasonName}}</span></p>
+  {{range .Groups}}
+    <section>
+      <h2 class="section-title">ردهٔ {{.DisplayName}}</h2>
+      {{if .Premier}}
+        <h3 class="card-title">لیگ برتر</h3>
+        <div class="table-wrap">
+          <table class="standings">
+            <thead><tr><th>نام</th><th>گروه</th><th>تیم‌ها</th><th>مسابقه‌ها</th><th>انجام‌شده</th><th>ثبت‌نام‌ها</th><th>عملیات</th></tr></thead>
+            <tbody>{{range .Premier}}{{template "competition_row" .}}{{end}}</tbody>
+          </table>
+        </div>
+      {{end}}
+      {{if .League1}}
+        <h3 class="card-title">لیگ ۱</h3>
+        <div class="table-wrap">
+          <table class="standings">
+            <thead><tr><th>نام</th><th>گروه</th><th>تیم‌ها</th><th>مسابقه‌ها</th><th>انجام‌شده</th><th>ثبت‌نام‌ها</th><th>عملیات</th></tr></thead>
+            <tbody>{{range .League1}}{{template "competition_row" .}}{{end}}</tbody>
+          </table>
+        </div>
+      {{end}}
+    </section>
+  {{end}}
+{{end}}
+{{end}}

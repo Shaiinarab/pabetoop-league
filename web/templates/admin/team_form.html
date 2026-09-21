@@ -1,0 +1,71 @@
+{{/* قرارداد داده (admin/team_form — ایجاد/ویرایش تیم؛ با admin_base رندر می‌شود):
+     .Title رشته («تیم جدید» یا «ویرایش تیم») · .ActionURL رشته (مقصد POST)
+     .Clubs فهرست {ID int64, Name string} · .AgeGroups فهرست {ID int64, DisplayName string}
+     .Team ساختار {ID int64, ClubID int64, Label string, DisplayName string, AgeGroupID int64} یا nil (حالت ایجاد)
+     .TeamLocked بولین — حالت ویرایش: انتخاب باشگاه قفل می‌شود (UpdateTeam باشگاه را نمی‌نویسد؛
+     کنترل فعالی که کاری نمی‌کند بدتر از کنترل قفل‌شده است).
+     .FieldErrors نگاشت {نام فیلد → پیام فارسی} (nil-safe): keys: club, display_name, label, age_group
+     .CSRFToken رشته. خطاهای اعتبارسنجی سرور در همان صفحه با .field-error رندر می‌شوند؛
+     پاسخ‌های 422 htmx هم طبق D2 قابل swap هستند (hx-status در TASK-011/010). */}}
+{{define "title"}}{{.Title}} — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">{{.Title}}</h1>
+  <p class="muted">نام رسمی تیم دقیقاً همان است که وارد می‌کنید؛ سیستم آن را تغییر نمی‌دهد.</p>
+
+  <form method="post" action="{{.ActionURL}}">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+
+    <div class="form-row">
+      <div class="field">
+        <label for="club">باشگاه</label>
+        <select id="club" name="club" required {{if .TeamLocked}}disabled{{end}}>
+          <option value="" {{if not .Team}}selected{{end}}disabled>— انتخاب باشگاه —</option>
+          {{$selClub := ""}}{{if .Team}}{{ $selClub = printf "%d" .Team.ClubID }}{{end}}
+          {{range .Clubs}}
+            <option value="{{.ID}}" {{if eq (printf "%d" .ID) $selClub}}selected{{end}}>{{.Name}}</option>
+          {{end}}
+        </select>
+        {{with .FieldErrors}}{{with .club}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+        {{if .TeamLocked}}<p class="help-text">باشگاه پس از ثبت تیم قابل تغییر نیست؛ برای جابه‌جایی، تیم را غیرفعال و تیم تازه‌ای در باشگاه درست ثبت کنید.</p>{{end}}
+      </div>
+
+      <div class="field">
+        <label for="age_group">رده سنی</label>
+        <select id="age_group" name="age_group" required>
+          <option value="" {{if not .Team}}selected{{end}}disabled>— انتخاب ردهٔ سنی —</option>
+          {{$selAge := ""}}{{if .Team}}{{ $selAge = printf "%d" .Team.AgeGroupID }}{{end}}
+          {{range .AgeGroups}}
+            <option value="{{.ID}}" {{if eq (printf "%d" .ID) $selAge}}selected{{end}}>{{.DisplayName}}</option>
+          {{end}}
+        </select>
+        {{with .FieldErrors}}{{with .age_group}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label for="display_name">نام نمایشی تیم</label>
+        {{$displayName := ""}}{{if .Team}}{{ $displayName = .Team.DisplayName }}{{end}}
+        <input id="display_name" name="display_name" type="text" value="{{$displayName}}" required
+               placeholder="مثلاً: نمونه ب ۲">
+        {{with .FieldErrors}}{{with .display_name}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+        <p class="help-text">برای تیم‌های دوم و سومِ یک باشگاه، شماره را در نام بیاورید (مثل «نمونه ب ۲»).</p>
+      </div>
+
+      <div class="field">
+        <label for="label">برچسب رسمی (اختیاری)</label>
+        {{$label := ""}}{{if .Team}}{{ $label = .Team.Label }}{{end}}
+        <input id="label" name="label" type="text" value="{{$label}}" placeholder="مثلاً: ۲ یا الف">
+        {{with .FieldErrors}}{{with .label}}<p class="error-text">{{.}}</p>{{end}}{{end}}
+        <p class="help-text">برچسب با باشگاه یکتاست؛ برای تیم اصلی می‌توانید خالی بگذارید.</p>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <button type="submit" class="btn primary large">ذخیره</button>
+      <a class="btn ghost" href="/admin/teams">انصراف</a>
+    </div>
+  </form>
+</section>
+{{end}}

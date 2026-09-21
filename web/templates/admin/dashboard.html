@@ -1,0 +1,58 @@
+{{/* قرارداد داده (admin/dashboard — خانهٔ بشقاب مدیریتی؛ با admin_base رندر می‌شود):
+     .SeasonName رشته · .AgeGroups فهرست {ID int64, DisplayName string, Competitions int, Teams int}
+     .LastResults فهرست payload سطر مسابقه {Match store.Match, ShowDate bool} (partial «match_row»)
+     .NextFixtures فهرست همان payload · .LastBackup *string (تاریخ ISO؛ nil = هرگز)
+     .QuickResultsURL رشته (صفحهٔ ثبت سریع نتیجه — TASK-011) */}}
+{{define "title"}}خانه — بشقاب مدیریتی{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">خانه</h1>
+  {{if .SeasonName}}<p class="muted">فصل جاری: <span class="pill">{{.SeasonName}}</span></p>{{end}}
+  <div class="form-row">
+    <a class="btn primary large" href="{{.QuickResultsURL}}">ثبت سریع نتیجه</a>
+    <a class="btn" href="/admin/fixtures">مدیریت برنامهٔ بازی‌ها</a>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">رده‌های سنی</h2>
+  <div class="grid-3">
+    {{range .AgeGroups}}
+      <div class="stat-card">
+        <div class="stat-value">{{.DisplayName}}</div>
+        <div class="stat-label">مسابقات: {{toFa (printf "%d" .Competitions)}} · تیم‌ها: {{toFa (printf "%d" .Teams)}}</div>
+      </div>
+    {{end}}
+  </div>
+</section>
+
+<div class="grid-2">
+  <section>
+    <h2 class="section-title">آخرین نتایج</h2>
+    {{if not .LastResults}}
+      <div class="empty-state">هنوز نتیجه‌ای ثبت نشده است.</div>
+    {{else}}
+      {{range .LastResults}}{{template "match_row" .}}{{end}}
+    {{end}}
+  </section>
+
+  <section>
+    <h2 class="section-title">دیدارهای پیشِ رو</h2>
+    {{if not .NextFixtures}}
+      <div class="empty-state">بازی برنامه‌ریزی‌شده‌ای وجود ندارد.</div>
+    {{else}}
+      {{range .NextFixtures}}{{template "match_row" .}}{{end}}
+    {{end}}
+  </section>
+</div>
+
+<section class="card">
+  <h2 class="section-title">پشتیبان‌گیری</h2>
+  {{if .LastBackup}}
+    <p>آخرین پشتیبان‌گیری: <span class="persian-num">{{jalaliLong .LastBackup}}</span></p>
+  {{else}}
+    <p class="muted">هنوز پشتیبانی گرفته نشده است.</p>
+  {{end}}
+  <a class="btn primary" href="/admin/backup">دانلود پشتیبان</a>
+</section>
+{{end}}

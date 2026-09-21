@@ -1,0 +1,50 @@
+{{/* قرارداد داده: .LatestResults و .Upcoming فهرستِ payload سطر مسابقه (Match + ShowDate)؛
+     .Stats ساختار {Clubs, Matches, Finished, Goals int}؛ .AgeGroups لیترال {ID int64, DisplayName}؛
+     .SiteName و .ActiveSeason رشته. نتیجه‌ها با template «match_row» رندر می‌شوند. */}}
+{{define "title"}}{{.SiteName}}{{end}}
+{{define "content"}}
+<section class="card">
+  <h1 class="section-title">{{.SiteName}}</h1>
+  {{if .ActiveSeason}}<p class="muted">فصل جاری: <span class="pill">{{.ActiveSeason}}</span></p>{{end}}
+</section>
+
+<section>
+  <h2 class="section-title">آمار فصل</h2>
+  <div class="grid-4">
+    <div class="stat-card"><div class="stat-value">{{toFa (printf "%d" .Stats.Clubs)}}</div><div class="stat-label">باشگاه</div></div>
+    <div class="stat-card"><div class="stat-value">{{toFa (printf "%d" .Stats.Matches)}}</div><div class="stat-label">مسابقه</div></div>
+    <div class="stat-card"><div class="stat-value">{{toFa (printf "%d" .Stats.Finished)}}</div><div class="stat-label">برگزارشده</div></div>
+    <div class="stat-card"><div class="stat-value">{{toFa (printf "%d" .Stats.Goals)}}</div><div class="stat-label">گل</div></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">آخرین نتایج</h2>
+  {{if not .LatestResults}}
+    <div class="empty-state">هنوز نتیجه‌ای ثبت نشده است.</div>
+  {{else}}
+    {{range .LatestResults}}{{template "match_row" .}}{{end}}
+  {{end}}
+</section>
+
+<section>
+  <h2 class="section-title">مسابقات در پیش</h2>
+  {{if not .Upcoming}}
+    <div class="empty-state">مسابقه‌ای در پیش نیست.</div>
+  {{else}}
+    {{range .Upcoming}}{{template "match_row" .}}{{end}}
+  {{end}}
+</section>
+
+<section>
+  <h2 class="section-title">رده‌های سنی</h2>
+  <div class="grid-4">
+    {{range .AgeGroups}}
+      <a class="card" href="/age/{{.ID}}">
+        <div class="card-title">{{.DisplayName}}</div>
+        <p class="muted">جدول و نتایج این رده</p>
+      </a>
+    {{end}}
+  </div>
+</section>
+{{end}}

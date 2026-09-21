@@ -1,0 +1,75 @@
+{{/* قرارداد داده (admin_result_base — تختهٔ ثبت سریع نتیجه؛ با admin_base رندر می‌شود):
+     .AgeGroups فهرست {DisplayName string, Competitions []{ID int64, Name string}} — برای <optgroup>
+     .SelectedCompetitionID int64 · .SelectedName string · .Week int · .Weeks []int
+     .Rows فهرست payload سطر نتیجه {Match store.Match, HomeValue string, AwayValue string,
+           Finished bool, Saved bool, ErrorMessage string, CSRFToken string} (partial «result_row»)
+     .StandingsURL رشته (خالی = بدون htmx) · .Table {CompetitionName string, Rows []emptyRow}
+
+     رفتار htmx 4 (D2):
+       - انتخاب مسابقه/هفته: فرم همانجا با hx-get + hx-select="#results-board" جایگزین می‌شود
+         (بدون بارگذاری کامل صفحه؛ بدون JS، فرم GET معمولی کار می‌کند).
+       - جدول با رویداد سفارشی resultSaved (هدر HX-Trigger پاسخ ثبت/پاک‌کردن) تازه می‌شود.
+     بدون اسکریپت/استایل درون‌خطی (CSP سخت‌گیر). اعداد فارسی از سرور می‌آیند. */}}
+{{define "results_board"}}
+<div id="results-board">
+
+  {{if not .AgeGroups}}
+    <div class="empty-state">مسابقه‌ای برای فصل جاری ثبت نشده است. ابتدا فصل و مسابقات را بسازید.</div>
+  {{else}}
+
+  <section class="card">
+    <form class="form-row" method="get" action="/admin/results"
+          hx-get="/admin/results" hx-target="#results-board" hx-select="#results-board"
+          hx-swap="outerHTML" hx-push-url="true">
+      <div class="field">
+        <label for="competition">مسابقه</label>
+        <select id="competition" name="competition">
+          {{range .AgeGroups}}
+            <optgroup label="{{.DisplayName}}">
+              {{range .Competitions}}
+                <option value="{{.ID}}"{{if eq .ID $.SelectedCompetitionID}} selected{{end}}>{{.Name}}</option>
+              {{end}}
+            </optgroup>
+          {{end}}
+        </select>
+      </div>
+      <div class="field">
+        <label for="week">هفته</label>
+        <select id="week" name="week">
+          {{range .Weeks}}
+            <option value="{{.}}"{{if eq . $.Week}} selected{{end}}>هفتهٔ {{toFa (printf "%d" .)}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn primary large" type="submit">نمایش</button>
+      </div>
+    </form>
+    {{if .SelectedName}}<p class="muted">مسابقهٔ انتخاب‌شده: {{.SelectedName}}</p>{{end}}
+  </section>
+
+  <section aria-label="بازی‌های هفته">
+    {{if not .Rows}}
+      <div class="empty-state">برای این هفته بازی‌ای ثبت نشده است. هفتهٔ دیگری را انتخاب کنید.</div>
+    {{else}}
+      {{range .Rows}}{{template "result_row" .}}{{end}}
+    {{end}}
+  </section>
+
+  {{if .StandingsURL}}
+    <section id="standings" class="card"
+             hx-get="{{.StandingsURL}}" hx-trigger="resultSaved from:body" hx-swap="innerHTML">
+      <h2 class="section-title">جدول</h2>
+      {{template "standings_table" .Table}}
+    </section>
+  {{else}}
+    <section class="card">
+      <h2 class="section-title">جدول</h2>
+      {{template "standings_table" .Table}}
+    </section>
+  {{end}}
+
+  {{end}}
+</div>
+{{end}}
