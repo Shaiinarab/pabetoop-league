@@ -7,7 +7,11 @@ on:
     branches: [main]
 
 env:
-  GO_VERSION: '1.26'
+  # Pinned to the exact patch, not '1.26'. The `Verify module files are tidy` step below
+  # asserts `go mod tidy` is a no-op, and tidy's output can differ between patch releases
+  # (a dependency's own go.mod moves, an entry becomes stale). Floating '1.26' made that
+  # check fail for a reason nobody could reproduce locally. Bump this deliberately.
+  GO_VERSION: '1.26.5'
 
 jobs:
   go:
