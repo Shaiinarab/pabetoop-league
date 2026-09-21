@@ -81,6 +81,17 @@ if [[ "$BINARY" != "pabetoop-league" ]]; then
   done
   # Compose volume names cannot contain dashes.
   sed -i "s|pabetoop_league_|${BINARY//-/_}_|g" docker-compose.yml
+
+  # The database filename is part of the fork's identity too: a fork should create
+  # data/<its-own-name>.db, not data/pabetoop-league.db. Rewrite it wherever the
+  # default is written down, so the docs, the Go default and .env all agree.
+  # .env is created from .env.example further down, so rewriting the example here
+  # is what makes the generated .env correct.
+  echo "Renaming the default database file"
+  while IFS= read -r -d '' f; do
+    sed -i "s|data/pabetoop-league\.db|data/$BINARY.db|g" "$f"
+  done < <(grep -rlZ "data/pabetoop-league\.db" . \
+             --exclude-dir=.git --exclude-dir=node_modules 2>/dev/null || true)
 fi
 
 # ── 2. Cosmetic identity: written to .env, read by internal/site ──────────────

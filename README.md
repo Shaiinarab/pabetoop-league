@@ -8,6 +8,10 @@ and no league, city or club name anywhere in the source.
 ![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+> **Taking this live for your own league?** → [`docs/ADOPTING.md`](docs/ADOPTING.md) walks the whole
+> path end to end: re-brand it in one command, run it locally, put your own clubs and season in,
+> deploy it, and the traps that actually bite.
+
 ---
 
 ## What problem this solves

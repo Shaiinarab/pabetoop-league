@@ -47,6 +47,71 @@ jobs:
           go run ./cmd/seed --db /tmp/ci-seed.db --force
           test -s /tmp/ci-seed.db
 
+  template:
+    name: Template integrity (re-brand and boot)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # The from-source path is the one a newcomer takes, and it is the one nothing
+      # else exercises. It has silently broken before: .env never reached the
+      # process, and the seed command failed on a fresh clone because data/ is
+      # gitignored and did not exist yet. This job re-brands a throwaway copy and
+      # reads the bytes it serves, so neither can regress unnoticed again.
+      # A script with a shebang but no executable bit is invisible until someone runs
+      # it the way the docs say to — `./tools/instantiate.sh` — and gets "Permission
+      # denied". That shipped once; this is the net.
+      - name: Check shell scripts are executable
+        run: |
+          set -euo pipefail
+          bad=0
+          while IFS= read -r f; do
+            head -c2 "$f" | grep -q '#!' || continue
+            if [ ! -x "$f" ]; then
+              echo "::error file=$f::has a shebang but is not executable"
+              bad=1
+            fi
+          done < <(git ls-files '*.sh' '*.bash')
+          [ "$bad" -eq 0 ] || { echo "a documented entrypoint is not executable"; exit 1; }
+          echo "all shell scripts are executable"
+
+      - name: Re-brand a throwaway copy
+        run: |
+          cp -a . /tmp/fork
+          cd /tmp/fork
+          tools/instantiate.sh \
+            --name "CI Fork League" \
+            --name-fa "لیگ آزمایشی" \
+            --discipline-fa "فوتسال" \
+            --subtitle-fa "فصل آزمایشی" \
+            --module-path github.com/example/ci-fork-league \
+            --binary ci-fork-league
+
+      - name: Boot the fork and assert it serves its own brand
+        working-directory: /tmp/fork
+        run: |
+          set -euo pipefail
+          export NO_PROXY=127.0.0.1,localhost
+          # the seed command is the first thing the README tells a newcomer to run
+          go run ./cmd/seed --db data/league.db --force
+          ADDR=:18080 DB_PATH=data/league.db tools/serve.sh --background
+          for _ in $(seq 1 30); do
+            curl -sf -o /dev/null http://127.0.0.1:18080/healthz && break || sleep 1
+          done
+          curl -sf http://127.0.0.1:18080/ > /tmp/page.html
+          # the brand the operator configured must be what the process actually serves ...
+          grep -q "لیگ آزمایشی" /tmp/page.html
+          # ... and the template's own default must never leak into a re-branded fork
+          ! grep -q "پابتوپ" /tmp/page.html
+          ! grep -q "Pabetoop" /tmp/page.html
+          echo "the fork served its own brand"
+
   docker:
     name: Container image builds
     runs-on: ubuntu-latest
