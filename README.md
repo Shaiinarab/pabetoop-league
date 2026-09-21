@@ -101,14 +101,21 @@ SEED=1 docker compose up -d --build     # SEED creates a demo season on first bo
 Requires Go 1.26+ (Node 22+ only if you touch the TypeScript client).
 
 ```bash
+cp .env.example .env        # same file the Docker path reads — edit the LEAGUE_* block
 go mod download
 
-# optional: a demo season with 73 placeholder clubs and 1,920 fixtures
+# optional: a demo season with placeholder clubs and fixtures
 go run ./cmd/seed --db data/league.db --force
 
 ADMIN_PASSWORD='choose-a-password' tools/serve.sh --background
 # public → http://127.0.0.1:8080   admin → http://127.0.0.1:8080/admin/login
 ```
+
+`tools/serve.sh` loads `.env` itself via `tools/load-env.sh`, so the branding you set there is what
+the process serves. An explicitly exported variable still wins over `.env`
+(`ADDR=:9000 tools/serve.sh`). Do not shortcut the loader with `. ./.env` — a value containing a
+space (`LEAGUE_NAME=Riverside Youth League`) makes the shell try to run `Youth`, and the variable
+silently becomes `Riverside`.
 
 Always export `NO_PROXY=127.0.0.1,localhost` on a host with a global proxy, or localhost
 requests get captured by it.

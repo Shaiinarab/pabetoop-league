@@ -22,6 +22,11 @@ cd "$ROOT" || exit 1
 # Never let a global proxy capture localhost traffic (AGENTS.md pitfall).
 export NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost
 
+# Load .env (brand + settings) if it exists, so a re-branded deployment serves the
+# name the operator set. Explicit environment variables win, so `ADDR=:9000 tools/serve.sh`
+# still beats a stale .env entry. See tools/load-env.sh for why this is not a plain `source`.
+ENV_FILE="$ROOT/.env" . "$ROOT/tools/load-env.sh"
+
 ADDR="${ADDR:-:8080}"
 DB_PATH="${DB_PATH:-data/pabetoop-league.db}"
 BIN="${BIN:-bin/pabetoop-league}"

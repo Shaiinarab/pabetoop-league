@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -100,6 +101,16 @@ func main() {
 		}
 		_ = os.Remove(*dbPath + "-wal")
 		_ = os.Remove(*dbPath + "-shm")
+	}
+
+	// The default path lives under data/, which is gitignored — so on a fresh clone it
+	// does not exist yet, and SQLite cannot create a file inside a missing directory
+	// ("unable to open database file"). Create it here so the documented first run
+	// (`go run ./cmd/seed --db data/league.db --force`) works on a clean checkout.
+	if dir := filepath.Dir(*dbPath); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			fatalf("ایجاد مسیر پایگاه داده ممکن نشد: %v", err)
+		}
 	}
 
 	s, err := store.Open(*dbPath)
