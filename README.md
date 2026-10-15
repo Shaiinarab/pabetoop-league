@@ -1,4 +1,4 @@
-# Pabetoop League
+[![Architecture diagram of shaiinarab/pabetoop-league](https://gitdiagram.com/shaiinarab/pabetoop-league/diagram.png)](https://gitdiagram.com/shaiinarab/pabetoop-league?utm_source=readme&utm_medium=picture)[![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/shaiinarab/pabetoop-league?utm_source=readme&utm_medium=badge)# Pabetoop League
 
 **A competition platform for youth leagues.** Fixtures, results, league tables and
 competition administration — one Go binary, one SQLite file, a Persian RTL interface,
